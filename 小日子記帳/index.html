@@ -1,0 +1,1330 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6efe0">
+<meta name="color-scheme" content="light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="小日子">
+<meta name="format-detection" content="telephone=no">
+<meta name="description" content="溫暖簡單的每日消費記帳">
+<title>小日子記帳</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- 字型以非阻塞方式載入；失敗或離線時自動使用系統字型 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&display=swap" media="print" onload="this.media='all'">
+<style>
+/* ================= 色彩與基本設定 ================= */
+:root{
+  --paper:#f6efe0;
+  --paper-2:#ede3cd;
+  --cloud:#fffcf5;
+  --ink:#4b3f33;
+  --ink-2:#7a6a59;
+  --ink-3:#a8988a;
+  --grass:#8fb573;
+  --grass-deep:#527c3f;
+  --grass-soft:#e5efd9;
+  --sky:#a7cbe3;
+  --sky-deep:#5f92b6;
+  --sky-soft:#e6f0f6;
+  --wood:#a87c52;
+  --wood-deep:#7a5636;
+  --wood-soft:#f1e5d3;
+  --danger:#b4604f;
+  --danger-soft:#f7e4dd;
+  --line:rgba(122,95,64,.16);
+  --line-2:rgba(122,95,64,.28);
+  --overlay:rgba(75,63,51,.3);
+  --shadow:0 6px 18px rgba(110,84,52,.09),0 1px 2px rgba(110,84,52,.07);
+  --shadow-lg:0 14px 34px rgba(110,84,52,.2);
+  --radius:22px;
+  --tabbar-h:64px;
+  --sat:env(safe-area-inset-top,0px);
+  --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px);
+  --sar:env(safe-area-inset-right,0px);
+  --font:"Huninn","jf open 粉圓","PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  --dur:260ms;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{
+  -webkit-text-size-adjust:100%;text-size-adjust:100%;
+  background:var(--paper);
+  overflow-x:hidden;
+}
+body{
+  margin:0;min-height:100vh;min-height:100dvh;overflow-x:hidden;
+  font-family:var(--font);color:var(--ink);line-height:1.5;
+  -webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;
+}
+html.lock,html.lock body{overflow:hidden}
+/* 水彩暈染 + 紙張顆粒（皆由 CSS / 內嵌 SVG 產生） */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(120% 55% at 0% -8%,rgba(167,203,227,.42),transparent 62%),
+    radial-gradient(80% 40% at 105% 102%,rgba(143,181,115,.24),transparent 62%),
+    radial-gradient(60% 30% at -10% 80%,rgba(168,124,82,.08),transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .32 0 0 0 0 .2 0 0 0 .55 -.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2.5px solid var(--sky-deep);outline-offset:2px}
+.num,.money{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.money .cur{font-size:.52em;margin-right:.22em;color:var(--ink-2);vertical-align:.14em}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0;margin:-1px}
+
+/* ================= 版面 ================= */
+.app{
+  max-width:480px;margin:0 auto;
+  padding:calc(var(--sat) + 14px) max(16px,var(--sar)) calc(var(--tabbar-h) + var(--sab) + 104px) max(16px,var(--sal));
+}
+.view{animation:fadeIn .22s var(--ease)}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;min-height:52px}
+.top h1{margin:0;font-size:24px;font-weight:normal;letter-spacing:.04em}
+.top .sub{margin:0;font-size:13px;color:var(--ink-2)}
+.deco-cloud{width:74px;height:38px;flex:none;opacity:.9}
+.card{
+  background:rgba(255,252,245,.94);border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:var(--shadow);
+}
+
+/* 首頁摘要卡 */
+.summary{position:relative;overflow:hidden;margin-top:12px;padding:16px 20px 34px}
+.summary .lbl{font-size:14px;color:var(--ink-2)}
+.sum-today .money{display:block;font-size:clamp(30px,10.5vw,40px);line-height:1.2;color:var(--wood-deep);transform-origin:left center}
+.sum-month{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px;padding-top:10px;border-top:1.5px dashed var(--line-2)}
+.sum-month .money{font-size:20px}
+.hills{position:absolute;left:0;right:0;bottom:0;width:100%;height:28px;pointer-events:none}
+
+/* 提醒與通知 */
+.banner{display:flex;align-items:center;gap:8px;margin-top:12px;padding:6px 4px 6px 14px;border-radius:18px;font-size:14px}
+.banner .txt{flex:1;min-width:0;padding:6px 0}
+.banner.remind{background:var(--sky-soft);border:1px solid rgba(95,146,182,.25)}
+.banner.notice{background:var(--wood-soft);border:1px solid rgba(168,124,82,.25)}
+.banner .go{flex:none;min-height:44px;padding:0 12px;border:0;border-radius:14px;background:rgba(255,252,245,.8);color:var(--sky-deep)}
+.x-btn{flex:none;width:44px;height:44px;border:0;background:transparent;border-radius:14px;display:grid;place-items:center;color:var(--ink-2)}
+.x-btn svg{width:18px;height:18px}
+
+/* 紀錄列表 */
+.day{margin-top:18px}
+.day-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;column-gap:8px;padding:0 8px 6px;font-size:13px;color:var(--ink-2)}
+.day-head>span{white-space:nowrap}
+.day-sum{margin-left:auto}
+.day-head b{font-weight:normal;font-size:15px;color:var(--ink)}
+.tag{font-style:normal;font-size:12px;background:var(--grass-soft);color:var(--grass-deep);border-radius:999px;padding:1px 8px;margin-left:4px}
+.day-sum .money{font-size:15px;color:var(--ink)}
+.day-list{list-style:none;margin:0;padding:4px}
+.day-list li+li{border-top:1px dashed var(--line)}
+.rec{
+  appearance:none;-webkit-appearance:none;border:0;background:transparent;text-align:left;
+  display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:8px 10px;border-radius:16px;
+  transition:background .3s ease;
+}
+.rec:active{background:var(--paper-2)}
+.rec.fresh{background:var(--grass-soft)}
+.rec.landed{animation:land .3s var(--ease) both}
+.ic-bubble{flex:none;width:42px;height:42px;border-radius:50%;background:var(--cs);display:grid;place-items:center;color:var(--ink)}
+.ic-bubble svg{width:30px;height:30px}
+.rec-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.rec-cat{font-size:16px}
+.rec-note{font-size:13px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-amt{flex:none;font-size:18px}
+.more{margin-top:16px}
+.empty{text-align:center;padding:34px 12px 8px;color:var(--ink-2)}
+.empty svg{width:150px;height:120px}
+.empty p{margin:6px 0 0}
+.empty .strong{color:var(--ink);font-size:17px}
+.soft-hint{display:flex;align-items:center;justify-content:center;gap:8px;margin:18px 0 0;font-size:14px;color:var(--ink-2)}
+.soft-hint svg{width:34px;height:28px;flex:none}
+
+/* 按鈕 */
+.btn{
+  appearance:none;-webkit-appearance:none;font-size:16px;min-height:48px;padding:10px 18px;
+  border-radius:16px;border:1.5px solid var(--line-2);background:var(--cloud);color:var(--ink);
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform .12s ease,opacity .2s ease;
+}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--grass-deep);border-color:var(--grass-deep);color:#fffdf7;box-shadow:0 3px 0 rgba(60,90,45,.28)}
+.btn.danger{background:var(--danger-soft);border-color:rgba(180,96,79,.35);color:var(--danger)}
+.btn.block{display:flex;width:100%}
+.btn.block+.btn.block{margin-top:10px}
+.btn:disabled{opacity:.42;box-shadow:none;cursor:not-allowed;transform:none}
+.btn svg{width:20px;height:20px;flex:none}
+
+/* 新增按鈕 */
+.fab{
+  position:fixed;z-index:20;
+  right:max(16px,calc(50% - 240px + 16px),calc(var(--sar) + 12px));
+  bottom:calc(var(--tabbar-h) + var(--sab) + 18px);
+  width:66px;height:66px;border-radius:50%;
+  border:3px solid var(--cloud);background:var(--grass-deep);box-shadow:var(--shadow-lg);
+  display:grid;place-items:center;transition:transform .18s var(--ease);
+}
+.fab:active{transform:scale(.9)}
+.fab svg{width:30px;height:30px}
+
+/* 底部分頁列 */
+.tabbar{
+  position:fixed;z-index:15;left:0;right:0;bottom:0;margin:0 auto;max-width:480px;
+  display:flex;padding:6px 10px calc(6px + var(--sab));
+  background:rgba(255,252,245,.96);border-top:1px solid var(--line);
+  border-radius:22px 22px 0 0;box-shadow:0 -6px 20px rgba(110,84,52,.08);
+}
+.tab{
+  flex:1;appearance:none;border:0;background:none;color:var(--ink-3);min-height:52px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:12px;border-radius:14px;
+}
+.tab-ic{width:52px;height:28px;border-radius:14px;display:grid;place-items:center;transition:background .2s ease}
+.tab svg{width:24px;height:24px}
+.tab[aria-selected="true"]{color:var(--grass-deep)}
+.tab[aria-selected="true"] .tab-ic{background:var(--grass-soft)}
+
+/* ================= 輸入面板 ================= */
+.overlay{position:fixed;inset:0;z-index:30;background:var(--overlay);opacity:0;transition:opacity var(--dur) var(--ease)}
+.overlay.show{opacity:1}
+.sheet{
+  position:fixed;z-index:31;left:0;right:0;bottom:var(--kb,0px);margin:0 auto;max-width:480px;
+  max-height:calc(var(--vvh,100dvh) - var(--sat) - 12px);
+  display:flex;flex-direction:column;
+  background:var(--cloud);border-radius:26px 26px 0 0;box-shadow:0 -10px 40px rgba(75,63,51,.2);
+  transform:translateY(105%);visibility:hidden;
+  transition:transform var(--dur) var(--ease),visibility 0s linear var(--dur);
+}
+.sheet.open{transform:none;visibility:visible;transition:transform var(--dur) var(--ease),visibility 0s}
+.sheet::before{content:"";flex:none;width:40px;height:5px;border-radius:3px;background:var(--line-2);margin:8px auto 0}
+.sheet-head{flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 6px}
+.sheet-head h2{margin:0;font-size:17px;font-weight:normal}
+.text-btn{min-width:64px;min-height:44px;border:0;background:transparent;color:var(--ink-2);font-size:15px;border-radius:12px}
+.sheet-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:2px 16px 8px}
+.sheet-foot{flex:none;padding:8px 16px calc(12px + var(--sab));border-top:1px dashed var(--line)}
+html.kb-open .sheet-foot{padding-bottom:10px}
+.amount-field{display:flex;align-items:baseline;gap:8px;padding:4px 14px;border-radius:18px;background:var(--paper);border:1.5px solid var(--line)}
+.amount-field:focus-within{border-color:var(--sky-deep);background:#fffef9}
+.amount-field .cur{font-size:18px;color:var(--ink-2)}
+#fAmount{
+  flex:1;min-width:0;height:54px;border:0;background:transparent;padding:0;outline:none;
+  font-size:36px;color:var(--wood-deep);font-variant-numeric:tabular-nums;
+}
+#fAmount::placeholder{color:var(--ink-3)}
+.cat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0}
+.cat-btn{
+  appearance:none;border:1.5px solid transparent;background:transparent;color:var(--ink-2);font-size:13px;
+  min-height:68px;padding:4px 0;border-radius:16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  transition:background .2s ease,border-color .2s ease;
+}
+.cat-btn .ic-bubble{transition:transform .22s var(--ease)}
+.cat-btn[aria-checked="true"]{border-color:var(--cc);background:var(--cs);color:var(--ink)}
+.cat-btn[aria-checked="true"] .ic-bubble{background:var(--cloud);animation:pop .26s var(--ease)}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:10px}
+.field{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--ink-2);min-width:0}
+.field input{
+  -webkit-appearance:none;appearance:none;display:block;width:100%;min-width:0;min-height:46px;
+  font-size:16px;border-radius:14px;border:1.5px solid var(--line);background:var(--paper);padding:8px 12px;color:var(--ink);
+}
+.field input:focus{outline:none;border-color:var(--sky-deep);background:#fffef9}
+.field input::-webkit-date-and-time-value{text-align:left}
+.hint{margin:0 0 6px;min-height:20px;font-size:13px;text-align:center;color:var(--wood)}
+.foot-row{display:flex;gap:10px}
+.foot-row .btn.primary{flex:1;font-size:17px;min-height:52px}
+.foot-row .btn.danger{flex:none;width:96px;min-height:52px}
+
+/* ================= 對話框與提示 ================= */
+.dialog-wrap{
+  position:fixed;inset:0;z-index:50;background:var(--overlay);
+  display:flex;align-items:flex-end;justify-content:center;
+  padding:16px 16px calc(16px + var(--sab));opacity:0;transition:opacity .2s ease;
+}
+.dialog-wrap.show{opacity:1}
+.dialog{width:100%;max-width:440px;background:var(--cloud);border-radius:24px;padding:22px 18px 14px;box-shadow:var(--shadow-lg);transform:translateY(14px);transition:transform .22s var(--ease)}
+.dialog-wrap.show .dialog{transform:none}
+.dialog h3{margin:0 0 6px;font-size:18px;font-weight:normal;text-align:center}
+.dialog p{margin:0 0 16px;color:var(--ink-2);white-space:pre-line;text-align:center;font-size:15px}
+.dlg-actions{display:flex;flex-direction:column;gap:8px}
+.dlg-actions .btn+.btn{margin-top:0}
+.toast{
+  position:fixed;z-index:60;left:50%;bottom:calc(var(--tabbar-h) + var(--sab) + 100px);
+  transform:translate(-50%,8px);max-width:calc(100% - 48px);
+  background:rgba(75,63,51,.92);color:#fffdf7;padding:10px 18px;border-radius:999px;font-size:14px;text-align:center;
+  opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ================= 統計頁 ================= */
+.month-switch{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding:6px}
+.month-switch strong{font-weight:normal;font-size:18px}
+.icon-btn{width:48px;height:48px;border:0;border-radius:14px;background:transparent;display:grid;place-items:center;color:var(--ink)}
+.icon-btn:active{background:var(--paper-2)}
+.icon-btn:disabled{opacity:.22;cursor:default;background:transparent}
+.icon-btn svg{width:22px;height:22px}
+.stats-card{margin-top:14px;padding:18px 16px 10px}
+.donut-wrap{position:relative;width:220px;max-width:66vw;aspect-ratio:1/1;margin:2px auto 8px}
+.donut-wrap svg{display:block;width:100%;height:100%}
+.donut-wrap svg.anim{animation:donutIn .3s var(--ease)}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
+.donut-center small{font-size:12px;color:var(--ink-2)}
+.donut-center .money{font-size:24px;line-height:1.25;color:var(--wood-deep)}
+.cat-list{list-style:none;margin:6px 0 0;padding:0}
+.cat-row{display:flex;align-items:center;gap:12px;min-height:58px;padding:8px 2px}
+.cat-row+.cat-row{border-top:1px dashed var(--line)}
+.cat-mid{flex:1;min-width:0}
+.cat-top{display:flex;justify-content:space-between;gap:8px;font-size:15px}
+.pct{color:var(--ink-2);font-variant-numeric:tabular-nums}
+.bar{height:6px;margin-top:6px;border-radius:3px;background:var(--paper-2);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--cc)}
+.cat-amt{flex:none;min-width:86px;text-align:right;font-size:16px}
+.stats-empty{text-align:center;color:var(--ink-2);padding:26px 0 18px}
+.stats-empty svg{width:64px;height:64px}
+
+/* ================= 設定頁 ================= */
+.set-card{margin-top:14px;padding:18px}
+.card-title{display:flex;align-items:center;gap:8px;margin:0 0 4px;font-size:17px;font-weight:normal}
+.card-title svg{width:22px;height:22px;color:var(--grass-deep)}
+.muted{margin:0 0 14px;font-size:14px;color:var(--ink-2)}
+.small{margin:14px 0 0;font-size:13px;color:var(--ink-2)}
+.kv{margin:6px 0 0}
+.kv div{display:flex;justify-content:space-between;padding:10px 0;font-size:15px}
+.kv div+div{border-top:1px dashed var(--line)}
+.kv dt{color:var(--ink-2)}
+.kv dd{margin:0}
+.fatal{max-width:420px;margin:30vh auto 0;padding:0 24px;text-align:center;color:var(--ink-2)}
+
+/* ================= 動畫 ================= */
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes land{0%{opacity:0;transform:translateY(-16px) rotate(-1.5deg)}65%{opacity:1;transform:translateY(2px) rotate(.4deg)}100%{transform:none}}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.14)}100%{transform:scale(1.06)}}
+@keyframes donutIn{from{opacity:.3;transform:rotate(-24deg) scale(.94)}to{opacity:1;transform:none}}
+.bump{animation:bump .28s var(--ease)}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important;transition-delay:0s!important}
+}
+@media (min-width:520px){
+  .tabbar{bottom:12px;border-radius:22px;border:1px solid var(--line);padding-bottom:6px}
+  .fab{bottom:calc(var(--tabbar-h) + 30px)}
+}
+</style>
+</head>
+<body>
+<div class="fatal" id="fatal" hidden>
+  <p>App 啟動時遇到一點問題，請重新整理頁面試試看。</p>
+  <p>你的記帳資料仍保存在這支手機裡。</p>
+</div>
+
+<div class="app" id="app">
+  <!-- ========== 首頁 ========== -->
+  <section class="view" id="view-home" role="tabpanel" aria-labelledby="tab-home">
+    <header class="top">
+      <div>
+        <p class="sub" id="todayLabel"></p>
+        <h1>小日子記帳</h1>
+      </div>
+      <svg class="deco-cloud" viewBox="0 0 80 40" aria-hidden="true"><path d="M15 33c-6.5.3-9.6-6.4-4.6-10-.6-6.6 6.8-10.2 11.4-5.8C23.6 9.7 35.5 7.6 39.6 15c5.4-3.4 12.6-.4 12.4 5.8 6.6-.4 9 8.6 2.4 12.2-13.2.6-26.4.6-39.4 0z" fill="#fffcf5" stroke="#cdbda5" stroke-width="1.5" stroke-linejoin="round"/><path d="M61 14c3.8-3 9.6-1 9.6 3.6 4 .2 5.2 5 1.2 6.4" fill="none" stroke="#cdbda5" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </header>
+    <div id="notices"></div>
+    <article class="card summary" aria-label="消費摘要">
+      <div class="sum-today">
+        <span class="lbl">今天花了</span>
+        <strong class="money" id="sumToday"></strong>
+      </div>
+      <div class="sum-month">
+        <span class="lbl">本月累計</span>
+        <strong class="money" id="sumMonth"></strong>
+      </div>
+      <svg class="hills" viewBox="0 0 360 28" preserveAspectRatio="none" aria-hidden="true"><path d="M0 16C40 6 82 5 124 13s74 9 116 1 82-12 120 0V28H0z" fill="#8fb573" opacity=".2"/><path d="M0 22c58-8 112-7 170-1s118 5 190-6V28H0z" fill="#8fb573" opacity=".3"/></svg>
+    </article>
+    <div id="reminder"></div>
+    <div id="list"></div>
+  </section>
+
+  <!-- ========== 統計頁 ========== -->
+  <section class="view" id="view-stats" role="tabpanel" aria-labelledby="tab-stats" hidden>
+    <header class="top"><div><p class="sub">每個月的花費去了哪裡</p><h1>統計</h1></div></header>
+    <div class="card month-switch">
+      <button class="icon-btn" id="mPrev" type="button" aria-label="上個月"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.8 5.4c-2.4 2.2-4.6 4.4-6.6 6.7 2 2.2 4.2 4.4 6.6 6.6"/></svg></button>
+      <strong id="mLabel" aria-live="polite"></strong>
+      <button class="icon-btn" id="mNext" type="button" aria-label="下個月"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 5.4c2.4 2.2 4.6 4.4 6.6 6.7-2 2.2-4.2 4.4-6.6 6.6"/></svg></button>
+    </div>
+    <article class="card stats-card" id="statsCard"></article>
+  </section>
+
+  <!-- ========== 設定頁 ========== -->
+  <section class="view" id="view-settings" role="tabpanel" aria-labelledby="tab-settings" hidden>
+    <header class="top"><div><p class="sub">備份讓紀錄更安心</p><h1>設定</h1></div></header>
+    <article class="card set-card">
+      <h2 class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.8" y="5" width="16.4" height="4.4" rx="1.2"/><path d="M5.2 9.6v8.6c0 .9.6 1.4 1.4 1.4h10.8c.8 0 1.4-.5 1.4-1.4V9.6M10 13.2h4"/></svg>備份與還原</h2>
+      <p class="muted" id="lastExport"></p>
+      <button class="btn primary block" id="btnExportJson" type="button">匯出完整備份（JSON）</button>
+      <button class="btn block" id="btnExportCsv" type="button">匯出表格（CSV，可用 Excel 開啟）</button>
+      <button class="btn block" id="btnImport" type="button">從備份匯入（JSON）</button>
+      <input class="vh" type="file" id="fileInput" tabindex="-1" aria-hidden="true">
+      <p class="small">資料只存在這支手機的瀏覽器裡。建議每兩週匯出一次 JSON 備份，存到雲端硬碟或寄給自己。</p>
+    </article>
+    <article class="card set-card">
+      <h2 class="card-title"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.2 25.8C5.6 15.4 13 6.8 26.6 5.6c.8 12.4-6.8 20.6-20.4 20.2zM5.4 27c4.6-5 11-11.6 16.8-17"/></svg>關於</h2>
+      <dl class="kv" id="aboutList"></dl>
+    </article>
+  </section>
+</div>
+
+<button class="fab" id="fab" type="button" aria-label="記一筆"><svg viewBox="0 0 24 24" fill="none" stroke="#fffdf7" stroke-width="2.6" stroke-linecap="round"><path d="M12 5.2c.1 4.6 0 9 0 13.6M5.2 12.1c4.6-.1 9 0 13.6-.1"/></svg></button>
+
+<nav class="tabbar" role="tablist" aria-label="主要分頁">
+  <button class="tab" id="tab-home" role="tab" data-tab="home" type="button" aria-controls="view-home"><span class="tab-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.2 12 4.6l8 6.6"/><path d="M6.2 9.8v9.8h11.6V9.8"/><path d="M10.2 19.4v-4.6h3.6v4.6"/></svg></span>首頁</button>
+  <button class="tab" id="tab-stats" role="tab" data-tab="stats" type="button" aria-controls="view-stats"><span class="tab-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11.4 4.2a8 8 0 1 0 8.4 8.4h-8.4z"/><path d="M14.4 3.6a7 7 0 0 1 6 6h-6z"/></svg></span>統計</button>
+  <button class="tab" id="tab-settings" role="tab" data-tab="settings" type="button" aria-controls="view-settings"><span class="tab-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.8" y="5" width="16.4" height="4.4" rx="1.2"/><path d="M5.2 9.6v8.6c0 .9.6 1.4 1.4 1.4h10.8c.8 0 1.4-.5 1.4-1.4V9.6M10 13.2h4"/></svg></span>設定</button>
+</nav>
+
+<!-- ========== 新增／編輯面板 ========== -->
+<div class="overlay" id="overlay" hidden></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" inert>
+  <div class="sheet-head">
+    <button class="text-btn" id="sheetCancel" type="button">取消</button>
+    <h2 id="sheetTitle">記一筆</h2>
+    <span style="min-width:64px" aria-hidden="true"></span>
+  </div>
+  <form class="sheet-body" id="entryForm" novalidate autocomplete="off">
+    <label class="amount-field">
+      <span class="cur">NT$</span>
+      <input id="fAmount" type="text" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" maxlength="7" placeholder="0" aria-label="金額（新台幣）">
+    </label>
+    <div class="cat-grid" id="catGrid" role="radiogroup" aria-label="分類"></div>
+    <div class="row2">
+      <label class="field"><span>日期</span><input id="fDate" type="date"></label>
+      <label class="field"><span>備註（選填）</span><input id="fNote" type="text" maxlength="60" placeholder="例如：午餐便當" enterkeyhint="done"></label>
+    </div>
+  </form>
+  <div class="sheet-foot">
+    <p class="hint" id="fHint" aria-live="polite"></p>
+    <div class="foot-row">
+      <button class="btn danger" id="fDelete" type="button" hidden>刪除</button>
+      <button class="btn primary" id="fSave" type="button" disabled>儲存</button>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 對話框 ========== -->
+<div class="dialog-wrap" id="dialog" hidden>
+  <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dlgTitle" aria-describedby="dlgMsg">
+    <h3 id="dlgTitle"></h3>
+    <p id="dlgMsg"></p>
+    <div class="dlg-actions" id="dlgActions"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+/* =====================================================================
+ * 設定常數
+ * ===================================================================== */
+const APP_ID = 'xiaorizi-ledger';
+const STORAGE_KEY = 'xiaorizi.ledger';   // github.io 底下各專案共用網域，所以加上專屬前綴
+const SCHEMA_VERSION = 1;
+const MAX_AMOUNT = 9999999;
+const NOTE_MAX = 60;
+const REMIND_DAYS = 14;                  // 超過幾天沒匯出就提醒
+const SNOOZE_DAYS = 3;                   // 關閉提醒後幾天內不再出現
+const DAY_MS = 86400000;
+const GROUP_PAGE = 30;                   // 首頁一次顯示幾天的紀錄
+
+/* =====================================================================
+ * 分類（集中管理：新增分類只要改這裡）
+ * 圖示皆為原創手繪風 SVG，viewBox 0 0 32 32
+ * ===================================================================== */
+const RICE = '#fffaf0';
+const CATEGORIES = [
+  { code: 'food', name: '餐飲', color: '#e2ab5c', soft: '#f8e9cf',
+    icon: c => `<path d="M16 5.2c2.6 2.2 9.6 11.6 10.4 16.4.6 3.6-1.6 5.3-5 5.6-3.4.3-7.6.3-10.9 0-3.3-.4-5.4-2.1-4.8-5.6C6.6 16.8 13.5 7.3 16 5.2z" fill="${RICE}"/><path d="M12 19.6c2.6-.3 5.4-.3 8 .1l.2 7.5c-2.7.2-5.5.2-8.3 0z" fill="#5b6650"/><path d="M11.4 13l.5.4M20 12.2l.5-.5M15.8 9.9v.6" stroke-width="1.4"/>` },
+  { code: 'transport', name: '交通', color: '#6fa6cf', soft: '#dfedf7',
+    icon: c => `<path d="M5.6 9h10.2"/><path d="M6.6 9.2l.3 12.6h8.4l.2-12.6z" fill="${c}"/><path d="M15.4 13.6h9.4c1 0 1.6.6 1.6 1.6v6.6H15.3z" fill="${c}"/><path d="M21 13.4V9.8h3v3.6" fill="${c}"/><rect x="8.7" y="11.6" width="4.6" height="4" rx="1" fill="${RICE}"/><circle cx="10.4" cy="23.6" r="2.4" fill="${RICE}"/><circle cx="18.6" cy="23.6" r="2.4" fill="${RICE}"/><circle cx="24" cy="23.9" r="2" fill="${RICE}"/><path d="M4 27.4c5.6-.5 18.3-.5 24.4 0"/><path d="M23.4 7c-1-1.6.6-3.2 2.1-2.4.6-1.3 2.7-1.1 2.9.4" stroke-width="1.4"/>` },
+  { code: 'shopping', name: '購物', color: '#c49a6c', soft: '#f1e4d4',
+    icon: c => `<path d="M7.6 11.6l16.6-.2 1.4 15.3c-6.2.5-13 .5-19.4.1z" fill="${c}"/><path d="M12 11.5c-.4-4 1.5-6.2 4-6.2s4.4 2.2 4 6.1"/><path d="M9.8 15.2c3.8.4 8.4.3 12.4-.1" stroke-width="1.3"/><circle cx="16.1" cy="20.8" r="2.2" fill="${RICE}" stroke-width="1.3"/>` },
+  { code: 'fun', name: '娛樂', color: '#e08f7f', soft: '#f8e1db',
+    icon: c => `<path d="M16.2 3.8c3.2 3 6.4 6.3 8.9 9.4-2.7 3.4-5.8 6.6-9 9.6-3.1-3-6.1-6.3-8.8-9.6 2.7-3.2 5.7-6.4 8.9-9.4z" fill="${c}"/><path d="M16.2 4.4v18M7.8 13.2c5.6.2 11.2.2 16.8 0" stroke-width="1.3"/><path d="M16.2 22.8c-1.6 1.6 1.8 2.6.2 4.2-1.2 1.2.6 2.2 1.4 2.6"/><path d="M14.6 25.2l-1.9-.8.3 2zM18.2 27.4l1.9-.4-.8 1.8z" fill="${c}" stroke-width="1.2"/>` },
+  { code: 'home', name: '居家', color: '#86b268', soft: '#e3eed8',
+    icon: c => `<path d="M8.2 14.2l.2 12.2h15.4l-.1-12.4z" fill="${c}"/><path d="M5 15.6C8.6 12.4 12.3 9.3 16.1 6.2c3.6 3 7.2 6.1 10.9 9.4"/><path d="M20.8 10.2V6.4h2.7v6.1"/><path d="M13.8 26.3v-5.7c0-.7.5-1.2 1.2-1.2h2.2c.7 0 1.2.5 1.2 1.2v5.7" fill="${RICE}"/><rect x="19.2" y="16" width="3" height="3" rx=".6" fill="${RICE}" stroke-width="1.3"/><path d="M4 26.6c7.8-.4 16.2-.4 24 0"/>` },
+  { code: 'medical', name: '醫療', color: '#a996cb', soft: '#ebe5f4',
+    icon: c => `<path d="M8.4 8.6h15.2l.4 16.6c0 1.3-.8 2-2.1 2.1-3.9.3-7.9.3-11.8 0-1.3-.1-2.1-.8-2.1-2.1z" fill="${c}"/><path d="M8.4 8.6l1.4-2.4h12.4l1.4 2.4" fill="${RICE}"/><path d="M8.8 11.8c4.8.3 9.6.3 14.4 0" stroke-width="1.3"/><path d="M14.6 15.2h2.8v2.6h2.6v2.8h-2.6v2.6h-2.8v-2.6H12v-2.8h2.6z" fill="${RICE}" stroke-width="1.3"/>` },
+  { code: 'other', name: '其他', color: '#76b598', soft: '#dff0e7',
+    icon: c => `<path d="M6.2 25.8C5.6 15.4 13 6.8 26.6 5.6c.8 12.4-6.8 20.6-20.4 20.2z" fill="${c}"/><path d="M5.4 27c4.6-5 11-11.6 16.8-17"/><path d="M11.6 20.6l-.4-4.2M15.2 16.8l-.2-4.4M15.4 20.2l4.4.2M12 23.6l4.2.4" stroke-width="1.3"/>` },
+];
+const CAT_MAP = Object.fromEntries(CATEGORIES.map(c => [c.code, c]));
+const catOf = code => CAT_MAP[code] || CAT_MAP.other;
+const catIcon = cat => `<svg viewBox="0 0 32 32" fill="none" stroke="#4b3f33" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${cat.icon(cat.color)}</svg>`;
+const catStyle = cat => `--cc:${cat.color};--cs:${cat.soft}`;
+
+/* =====================================================================
+ * 日期工具：一律使用手機當地時間，不使用 toISOString()
+ * ===================================================================== */
+const DateUtil = {
+  pad: n => String(n).padStart(2, '0'),
+  fromDate(d) { return `${d.getFullYear()}-${this.pad(d.getMonth() + 1)}-${this.pad(d.getDate())}`; },
+  today() { return this.fromDate(new Date()); },
+  thisMonth() { return this.today().slice(0, 7); },
+  /** "YYYY-MM-DD" → 當地時間 Date；格式或日期不存在時回傳 null */
+  parse(s) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
+    if (!m) return null;
+    const y = +m[1], mo = +m[2], d = +m[3];
+    const dt = new Date(y, mo - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+    return dt;
+  },
+  isValid(s) { return typeof s === 'string' && this.parse(s) !== null; },
+  addDays(s, n) { const d = this.parse(s); d.setDate(d.getDate() + n); return this.fromDate(d); },
+  addMonths(ym, n) {
+    const [y, m] = ym.split('-').map(Number);
+    const d = new Date(y, m - 1 + n, 1);
+    return `${d.getFullYear()}-${this.pad(d.getMonth() + 1)}`;
+  },
+  monthLabel(ym) { const [y, m] = ym.split('-').map(Number); return `${y} 年 ${m} 月`; },
+  dayLabel(s) {
+    const d = this.parse(s), t = this.today();
+    const sameYear = d.getFullYear() === new Date().getFullYear();
+    return {
+      main: `${sameYear ? '' : d.getFullYear() + '年'}${d.getMonth() + 1}月${d.getDate()}日`,
+      week: '週' + '日一二三四五六'[d.getDay()],
+      rel: s === t ? '今天' : s === this.addDays(t, -1) ? '昨天' : '',
+    };
+  },
+  shortLabel(s) { const d = this.parse(s); return `${d.getMonth() + 1}/${d.getDate()}`; },
+  stamp(ts) {
+    const d = new Date(ts);
+    return `${this.fromDate(d)} ${this.pad(d.getHours())}:${this.pad(d.getMinutes())}`;
+  },
+  /** 兩個時間戳之間相差幾個「日曆天」（以當地日期計算） */
+  daysBetween(fromTs, toTs) {
+    const a = new Date(fromTs), b = new Date(toTs);
+    const da = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+    const db = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+    return Math.round((db - da) / DAY_MS);
+  },
+};
+
+/* =====================================================================
+ * 資料驗證（讀取、匯入共用）
+ * ===================================================================== */
+function validateRecord(r) {
+  const bad = field => ({ ok: false, field });
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return bad('整筆資料');
+  if (typeof r.id !== 'string' || !r.id.trim() || r.id.length > 64) return bad('id');
+  if (!Number.isInteger(r.amount) || r.amount <= 0 || r.amount > MAX_AMOUNT) return bad('金額');
+  if (!CAT_MAP[r.category]) return bad('分類');
+  if (!DateUtil.isValid(r.date)) return bad('日期');
+  if (r.note != null && typeof r.note !== 'string') return bad('備註');
+  if (!Number.isFinite(r.createdAt)) return bad('建立時間');
+  return {
+    ok: true,
+    rec: { id: r.id.trim(), amount: r.amount, category: r.category, date: r.date,
+           note: (r.note || '').slice(0, NOTE_MAX), createdAt: r.createdAt },
+  };
+}
+
+function newId() {
+  try { if (crypto.randomUUID) return crypto.randomUUID(); } catch (e) { /* 非安全環境 */ }
+  return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+}
+
+/* =====================================================================
+ * 資料存取（所有 localStorage 讀寫都集中在這裡，並以 try/catch 保護）
+ * ===================================================================== */
+const Store = (() => {
+  const blank = () => ({ schemaVersion: SCHEMA_VERSION, records: [],
+                         settings: { lastExportAt: null, reminderDismissedAt: null } });
+  let data = blank();
+  let available = true;   // 瀏覽器是否允許使用 localStorage
+  let locked = false;     // 原始資料無法安全保存時，暫停寫入以免覆蓋
+  let lastError = '';
+  let notices = [];
+
+  /** 舊版資料升級。未來 schemaVersion 2 時在此加上轉換步驟 */
+  function migrate(raw) {
+    if (!raw || typeof raw !== 'object' || !Array.isArray(raw.records)) throw new Error('format');
+    const v = raw.schemaVersion == null ? 1 : raw.schemaVersion;
+    if (typeof v !== 'number') throw new Error('format');
+    if (v > SCHEMA_VERSION) throw new Error('newer');
+    // if (v === 1) { ...轉換成 v2... }
+    const out = blank();
+    const seen = new Set();
+    let dropped = 0;
+    for (const r of raw.records) {
+      const res = validateRecord(r);
+      if (!res.ok || seen.has(res.rec.id)) { dropped++; continue; }
+      seen.add(res.rec.id);
+      out.records.push(res.rec);
+    }
+    const s = raw.settings || {};
+    out.settings.lastExportAt = Number.isFinite(s.lastExportAt) ? s.lastExportAt : null;
+    out.settings.reminderDismissedAt = Number.isFinite(s.reminderDismissedAt) ? s.reminderDismissedAt : null;
+    return { data: out, dropped };
+  }
+
+  function keepCopy(suffix, text) {
+    try { localStorage.setItem(`${STORAGE_KEY}.${suffix}`, text); return true; } catch (e) { return false; }
+  }
+
+  function load() {
+    notices = [];
+    locked = false;
+    let raw;
+    try {
+      raw = localStorage.getItem(STORAGE_KEY);
+      available = true;
+    } catch (e) {
+      available = false;
+      data = blank();
+      notices.push('瀏覽器目前不允許儲存資料（可能是私密瀏覽模式），這次記下的紀錄關閉後可能會消失。');
+      return;
+    }
+    if (raw == null) { data = blank(); return; }
+    try {
+      const res = migrate(JSON.parse(raw));
+      data = res.data;
+      if (res.dropped) {
+        keepCopy('recovered-' + Date.now(), raw);
+        notices.push(`有 ${res.dropped} 筆紀錄格式不完整，已先略過（原始資料另外保存了一份）。`);
+      }
+    } catch (e) {
+      data = blank();
+      if (e.message === 'newer') {
+        locked = true;
+        notices.push('這裡的資料來自較新版本的 App，為了避免覆蓋，暫時無法儲存。請重新整理以取得最新版本。');
+      } else if (keepCopy('recovered-' + Date.now(), raw)) {
+        notices.push('讀取資料時遇到問題，原始資料已另外保存一份。目前先以空白帳本開啟，可到「設定」從備份匯入。');
+      } else {
+        locked = true;
+        notices.push('讀取資料時遇到問題，為了保護原本的資料，暫時無法儲存新的紀錄。請到「設定」從備份匯入。');
+      }
+    }
+  }
+
+  /** 寫入成功才更新記憶體中的資料；失敗則保持原狀 */
+  function commit(next) {
+    if (locked) { lastError = '為了保護原本的資料，目前暫停儲存。'; return false; }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      data = next;
+      available = true;
+      return true;
+    } catch (e) {
+      const full = e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
+      lastError = full ? '儲存空間已滿，請先匯出備份再整理資料。' : '這次沒有存成功，請再試一次。';
+      return false;
+    }
+  }
+  const withRecords = records => ({ ...data, records });
+
+  return {
+    load,
+    isAvailable: () => available,
+    isLocked: () => locked,
+    notices: () => notices.slice(),
+    dismissNotice: i => { notices.splice(i, 1); },
+    error: () => lastError,
+    records: () => data.records,
+    settings: () => data.settings,
+    get: id => data.records.find(r => r.id === id) || null,
+
+    add(fields) {
+      const rec = { id: newId(), amount: fields.amount, category: fields.category,
+                    date: fields.date, note: fields.note || '', createdAt: Date.now() };
+      return commit(withRecords([...data.records, rec])) ? rec : null;
+    },
+    update(id, fields) {
+      const old = this.get(id);
+      if (!old) { lastError = '找不到這筆紀錄，可能已被刪除。'; return null; }
+      const rec = { ...old, amount: fields.amount, category: fields.category, date: fields.date, note: fields.note || '' };
+      return commit(withRecords(data.records.map(r => (r.id === id ? rec : r)))) ? rec : null;
+    },
+    remove(id) { return commit(withRecords(data.records.filter(r => r.id !== id))); },
+    setSettings(patch) { return commit({ ...data, settings: { ...data.settings, ...patch } }); },
+
+    /** 合併：以 id 去重，現有資料優先。回傳新增筆數；失敗回傳 null */
+    merge(list) {
+      const ids = new Set(data.records.map(r => r.id));
+      const add = list.filter(r => !ids.has(r.id));
+      return commit(withRecords([...data.records, ...add])) ? add.length : null;
+    },
+    /** 覆蓋：先另存一份目前資料，再整批取代 */
+    replace(list) {
+      keepCopy('before-import', JSON.stringify(data));
+      return commit(withRecords(list.slice()));
+    },
+    exportPayload(now) {
+      return { app: APP_ID, schemaVersion: SCHEMA_VERSION, exportedAt: now,
+               records: data.records, settings: { lastExportAt: now } };
+    },
+  };
+})();
+
+/* =====================================================================
+ * 計算
+ * ===================================================================== */
+function sumWhere(pred) {
+  let s = 0;
+  for (const r of Store.records()) if (pred(r)) s += r.amount;
+  return s;
+}
+/** 最大餘數法：回傳以 0.1% 為單位的整數陣列，加總必為 1000 */
+function splitPercent(values) {
+  const total = values.reduce((a, b) => a + b, 0);
+  if (!total) return values.map(() => 0);
+  const raw = values.map(v => (v * 1000) / total);
+  const out = raw.map(Math.floor);
+  let rest = 1000 - out.reduce((a, b) => a + b, 0);
+  raw.map((v, i) => [v - out[i], i])
+     .sort((a, b) => b[0] - a[0] || a[1] - b[1])
+     .slice(0, rest)
+     .forEach(([, i]) => { out[i]++; });
+  return out;
+}
+function monthTotals(ym) {
+  const map = new Map();
+  let total = 0, count = 0;
+  for (const r of Store.records()) {
+    if (r.date.slice(0, 7) !== ym) continue;
+    map.set(r.category, (map.get(r.category) || 0) + r.amount);
+    total += r.amount; count++;
+  }
+  const items = CATEGORIES.map(c => ({ cat: c, amount: map.get(c.code) || 0 }))
+                          .filter(x => x.amount > 0)
+                          .sort((a, b) => b.amount - a.amount);
+  const pct = splitPercent(items.map(x => x.amount));
+  items.forEach((x, i) => { x.pct = pct[i]; });
+  return { total, count, items };
+}
+function monthBounds() {
+  const cur = DateUtil.thisMonth();
+  let min = cur, max = cur;
+  for (const r of Store.records()) {
+    const m = r.date.slice(0, 7);
+    if (m < min) min = m;
+    if (m > max) max = m;
+  }
+  return { min, max };
+}
+
+/* =====================================================================
+ * 備份：匯出 JSON／CSV、匯入 JSON
+ * ===================================================================== */
+const Backup = {
+  toCsv(records) {
+    const cell = v => {
+      let s = String(v == null ? '' : v);
+      if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;   // 避免 Excel 公式注入
+      return '"' + s.replace(/"/g, '""') + '"';
+    };
+    const rows = records.slice()
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.createdAt - b.createdAt))
+      .map(r => [cell(r.date), cell(catOf(r.category).name), r.amount, cell(r.note), cell(DateUtil.stamp(r.createdAt))].join(','));
+    // 開頭的 BOM 讓 Excel 以 UTF-8 開啟，中文不會亂碼
+    return '﻿' + ['日期,分類,金額（新台幣）,備註,建立時間', ...rows].join('\r\n') + '\r\n';
+  },
+
+  parse(text) {
+    let obj;
+    try { obj = JSON.parse(text); } catch (e) { return { ok: false, msg: '這個檔案不是有效的 JSON 備份檔。' }; }
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return { ok: false, msg: '檔案內容不是記帳備份的格式。' };
+    if (typeof obj.schemaVersion !== 'number' || !Array.isArray(obj.records))
+      return { ok: false, msg: '檔案缺少版本或紀錄資料，看起來不是這個 App 的備份。' };
+    if (obj.schemaVersion > SCHEMA_VERSION) return { ok: false, msg: '這份備份來自較新版本的 App，請先更新 App 再匯入。' };
+    const out = [], ids = new Set();
+    for (let i = 0; i < obj.records.length; i++) {
+      const res = validateRecord(obj.records[i]);
+      if (!res.ok) return { ok: false, msg: `第 ${i + 1} 筆紀錄的「${res.field}」格式不正確。` };
+      if (ids.has(res.rec.id)) continue;
+      ids.add(res.rec.id);
+      out.push(res.rec);
+    }
+    return { ok: true, records: out };
+  },
+
+  /** 交付檔案：iOS 主畫面模式用分享選單（可存到「檔案」），其他情況直接下載 */
+  async deliver(text, name, type) {
+    const blob = new Blob([text], { type });
+    if (navigator.standalone === true && navigator.canShare && typeof File === 'function') {
+      try {
+        const file = new File([blob], name, { type });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: name });
+          return true;
+        }
+      } catch (e) {
+        if (e && e.name === 'AbortError') return false;
+      }
+    }
+    try {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name; a.rel = 'noopener';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+};
+
+/* =====================================================================
+ * 介面
+ * ===================================================================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const money = n => `<span class="cur">NT$</span><span class="num">${fmt(n)}</span>`;
+const X_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.4 6.2c3.8 3.9 7.6 7.7 11.2 11.6M17.6 6.4c-3.8 3.7-7.6 7.5-11.2 11.4"/></svg>';
+const TEACUP = `<svg viewBox="0 0 150 120" fill="none" stroke="#7a6a59" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M62 34c-5-6 5-10 0-17M76 32c-5-6 5-10 0-17" stroke="#5f92b6" opacity=".7"/>
+  <path d="M28 96c28 7 66 7 94 0" /><path d="M36 91c24 4 54 4 78 0" />
+  <path d="M42 46c22 3 44 3 66 0 0 22-11 42-33 42S42 68 42 46z" fill="#fffcf5"/>
+  <path d="M108 52c10-1 13 13 0 15" /><path d="M46 49c19 3 39 3 58 0" stroke="#a87c52" opacity=".6"/>
+  <path d="M60 68c3-6 9-8 15-7-2 6-8 9-15 7zM60 68c4-2 8-4 11-6" fill="#cfe2bf" stroke="#527c3f" stroke-width="1.6"/>
+</svg>`;
+const SMALL_CUP = `<svg viewBox="0 0 34 28" fill="none" stroke="#7a6a59" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 10c7 1 14 1 21 0 0 7-3.5 12-10.5 12S5 17 5 10z" fill="#fffcf5"/><path d="M26 12c3.4-.3 4.2 4.2 0 4.8M3 25c9 2 19 2 28 0"/><path d="M13 7c-1.6-1.8 1.6-3 0-5M18 7c-1.6-1.8 1.6-3 0-5" stroke="#5f92b6"/></svg>`;
+
+const ui = {
+  tab: 'home',
+  groupLimit: GROUP_PAGE,
+  statsMonth: DateUtil.thisMonth(),
+  editingId: null,
+  category: null,
+  today: DateUtil.today(),
+  reminderHidden: false,
+  animateDonut: true,
+};
+
+let toastTimer = 0;
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+/* ---------- 對話框（取代原生 confirm，回傳 Promise） ---------- */
+let dlgResolve = null;
+function dialog({ title, message = '', buttons }) {
+  return new Promise(resolve => {
+    if (dlgResolve) dlgResolve(null);
+    dlgResolve = resolve;
+    const wrap = $('#dialog'), actions = $('#dlgActions');
+    $('#dlgTitle').textContent = title;
+    $('#dlgMsg').textContent = message;
+    $('#dlgMsg').hidden = !message;
+    actions.innerHTML = '';
+    buttons.forEach(b => {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'btn block ' + (b.kind || '');
+      el.textContent = b.label;
+      el.addEventListener('click', () => closeDialog(b.value));
+      actions.appendChild(el);
+    });
+    wrap.hidden = false;
+    requestAnimationFrame(() => wrap.classList.add('show'));
+    actions.lastElementChild.focus({ preventScroll: true });
+  });
+}
+function closeDialog(value) {
+  if (!dlgResolve) return;
+  const resolve = dlgResolve;
+  dlgResolve = null;
+  const wrap = $('#dialog');
+  wrap.classList.remove('show');
+  setTimeout(() => { if (!dlgResolve) wrap.hidden = true; }, 200);
+  resolve(value);
+}
+
+/* ---------- 首頁 ---------- */
+function renderHome() {
+  const today = DateUtil.today(), ym = today.slice(0, 7);
+  const lbl = DateUtil.dayLabel(today);
+  $('#todayLabel').textContent = `${lbl.main} ${lbl.week}`;
+  $('#sumToday').innerHTML = money(sumWhere(r => r.date === today));
+  $('#sumMonth').innerHTML = money(sumWhere(r => r.date.slice(0, 7) === ym));
+  renderNotices();
+  renderReminder();
+  renderList(today);
+}
+
+function renderNotices() {
+  $('#notices').innerHTML = Store.notices().map((n, i) =>
+    `<div class="banner notice" role="alert"><span class="txt">${esc(n)}</span><button class="x-btn" type="button" data-notice="${i}" aria-label="關閉提示">${X_ICON}</button></div>`).join('');
+}
+
+function reminderDays() {
+  const recs = Store.records();
+  if (!recs.length || ui.reminderHidden) return 0;
+  const s = Store.settings(), now = Date.now();
+  const base = s.lastExportAt != null ? s.lastExportAt : recs.reduce((m, r) => Math.min(m, r.createdAt), Infinity);
+  if (now - base <= REMIND_DAYS * DAY_MS) return 0;
+  if (s.reminderDismissedAt != null && now - s.reminderDismissedAt < SNOOZE_DAYS * DAY_MS) return 0;
+  return DateUtil.daysBetween(base, now);
+}
+function renderReminder() {
+  const days = reminderDays();
+  const el = $('#reminder');
+  if (!days) { el.innerHTML = ''; return; }
+  const text = Store.settings().lastExportAt != null
+    ? `距離上次備份已經 ${days} 天了，找個時間匯出一份吧。`
+    : `已經記帳 ${days} 天，還沒有備份過，匯出一份會更安心。`;
+  el.innerHTML = `<div class="banner remind" role="note"><span class="txt">${text}</span>
+    <button class="go" type="button" data-act="goBackup">去備份</button>
+    <button class="x-btn" type="button" data-act="dismissReminder" aria-label="關閉備份提醒">${X_ICON}</button></div>`;
+}
+
+function groupByDate() {
+  const sorted = Store.records().slice().sort((a, b) =>
+    a.date < b.date ? 1 : a.date > b.date ? -1 : b.createdAt - a.createdAt);
+  const groups = [];
+  let g = null;
+  for (const r of sorted) {
+    if (!g || g.date !== r.date) { g = { date: r.date, items: [], sum: 0 }; groups.push(g); }
+    g.items.push(r);
+    g.sum += r.amount;
+  }
+  return groups;
+}
+
+function recHtml(r) {
+  const c = catOf(r.category);
+  const label = `${c.name} ${r.amount} 元${r.note ? '，' + r.note : ''}，點一下編輯`;
+  return `<li><button class="rec" type="button" data-id="${esc(r.id)}" style="${catStyle(c)}" aria-label="${esc(label)}">
+    <span class="ic-bubble">${catIcon(c)}</span>
+    <span class="rec-main"><span class="rec-cat">${c.name}</span>${r.note ? `<span class="rec-note">${esc(r.note)}</span>` : ''}</span>
+    <span class="rec-amt money">${money(r.amount)}</span></button></li>`;
+}
+
+function renderList(today) {
+  const list = $('#list');
+  const groups = groupByDate();
+  if (!groups.length) {
+    list.innerHTML = `<div class="empty">${TEACUP}<p class="strong">今天還沒有記帳喔，喝杯茶休息一下吧</p><p>想記的時候，點右下角的「＋」就好</p></div>`;
+    return;
+  }
+  let html = '';
+  if (!groups.some(g => g.date === today)) {
+    html += `<p class="soft-hint">${SMALL_CUP}今天還沒有記帳喔，喝杯茶休息一下吧</p>`;
+  }
+  html += groups.slice(0, ui.groupLimit).map(g => {
+    const l = DateUtil.dayLabel(g.date);
+    return `<section class="day"><header class="day-head">
+      <span><b>${l.main}</b> ${l.week}${l.rel ? `<em class="tag">${l.rel}</em>` : ''}</span>
+      <span class="day-sum">小計 <span class="money">${money(g.sum)}</span></span></header>
+      <ul class="card day-list">${g.items.map(recHtml).join('')}</ul></section>`;
+  }).join('');
+  if (groups.length > ui.groupLimit) {
+    html += `<button class="btn block more" type="button" data-act="more">顯示更早的紀錄</button>`;
+  }
+  list.innerHTML = html;
+}
+
+/* ---------- 統計頁 ---------- */
+function renderStats() {
+  const ym = ui.statsMonth;
+  const { min, max } = monthBounds();
+  $('#mLabel').textContent = DateUtil.monthLabel(ym);
+  $('#mPrev').disabled = ym <= min;
+  $('#mNext').disabled = ym >= max;
+  const { total, count, items } = monthTotals(ym);
+  const card = $('#statsCard');
+  if (!total) {
+    card.innerHTML = `<div class="stats-empty"><svg viewBox="0 0 32 32" fill="none" stroke="#7a6a59" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CAT_MAP.other.icon('#dff0e7')}</svg><p>這個月還沒有紀錄，很清爽呢</p></div>`;
+    return;
+  }
+  const R = 80, SW = 26, C = 2 * Math.PI * R;
+  let off = 0;
+  const segs = items.map(x => {
+    const len = (x.amount / total) * C;
+    const gap = items.length > 1 ? Math.min(2.4, len * 0.3) : 0;
+    const s = `<circle cx="110" cy="110" r="${R}" fill="none" stroke="${x.cat.color}" stroke-width="${SW}" stroke-dasharray="${Math.max(len - gap, 0.01).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"/>`;
+    off += len;
+    return s;
+  }).join('');
+  card.innerHTML = `
+    <div class="donut-wrap">
+      <svg class="${ui.animateDonut ? 'anim' : ''}" viewBox="0 0 220 220" role="img" aria-label="${DateUtil.monthLabel(ym)}各分類花費比例">
+        <circle cx="110" cy="110" r="104" fill="none" stroke="rgba(122,95,64,.22)" stroke-width="1.2" stroke-dasharray="2 5"/>
+        <circle cx="110" cy="110" r="${R}" fill="none" stroke="#ede3cd" stroke-width="${SW}"/>
+        <g transform="rotate(-90 110 110)">${segs}</g>
+      </svg>
+      <div class="donut-center"><small>這個月總共</small><span class="money">${money(total)}</span><small>${count} 筆紀錄</small></div>
+    </div>
+    <ul class="cat-list">${items.map(x => {
+      const p = (x.pct / 10).toFixed(1);
+      return `<li class="cat-row" style="${catStyle(x.cat)}">
+        <span class="ic-bubble">${catIcon(x.cat)}</span>
+        <div class="cat-mid"><div class="cat-top"><span>${x.cat.name}</span><span class="pct">${p}%</span></div><div class="bar"><i style="width:${p}%"></i></div></div>
+        <span class="cat-amt money">${money(x.amount)}</span></li>`;
+    }).join('')}</ul>`;
+  ui.animateDonut = false;
+}
+function shiftMonth(n) {
+  const { min, max } = monthBounds();
+  const next = DateUtil.addMonths(ui.statsMonth, n);
+  if (next < min || next > max) return;
+  ui.statsMonth = next;
+  ui.animateDonut = true;
+  renderStats();
+}
+
+/* ---------- 設定頁 ---------- */
+function renderSettings() {
+  const s = Store.settings();
+  let text = '還沒有匯出過完整備份。';
+  if (s.lastExportAt != null) {
+    const d = DateUtil.daysBetween(s.lastExportAt, Date.now());
+    text = `上次匯出完整備份：${DateUtil.stamp(s.lastExportAt).slice(0, 10)}（${d <= 0 ? '今天' : d + ' 天前'}）`;
+  }
+  $('#lastExport').textContent = text;
+  const status = !Store.isAvailable() ? '無法使用（可能是私密瀏覽）' : Store.isLocked() ? '暫停寫入（保護原資料）' : '正常';
+  $('#aboutList').innerHTML = [
+    ['紀錄筆數', `${Store.records().length} 筆`],
+    ['儲存狀態', status],
+    ['資料版本', `v${SCHEMA_VERSION}`],
+  ].map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('');
+}
+
+function renderAll() { renderHome(); renderStats(); renderSettings(); }
+
+function setTab(tab) {
+  ui.tab = tab;
+  for (const name of ['home', 'stats', 'settings']) {
+    $('#view-' + name).hidden = name !== tab;
+    $('#tab-' + name).setAttribute('aria-selected', String(name === tab));
+  }
+  $('#fab').hidden = tab === 'settings';
+  if (tab === 'stats') { ui.animateDonut = true; renderStats(); }
+  window.scrollTo(0, 0);
+}
+
+/* ---------- 新增／編輯面板 ---------- */
+const sheetEl = () => $('#sheet');
+const isSheetOpen = () => sheetEl().classList.contains('open');
+
+function buildCatGrid() {
+  $('#catGrid').innerHTML = CATEGORIES.map(c =>
+    `<button class="cat-btn" type="button" role="radio" aria-checked="false" data-cat="${c.code}" style="${catStyle(c)}">
+      <span class="ic-bubble">${catIcon(c)}</span>${c.name}</button>`).join('');
+}
+function setCategory(code) {
+  ui.category = code;
+  document.querySelectorAll('.cat-btn').forEach(b => b.setAttribute('aria-checked', String(b.dataset.cat === code)));
+  validateForm();
+}
+
+function readForm() {
+  return {
+    amount: $('#fAmount').value === '' ? NaN : Number($('#fAmount').value),
+    category: ui.category,
+    date: $('#fDate').value,
+    note: $('#fNote').value.trim().slice(0, NOTE_MAX),
+  };
+}
+function validateForm() {
+  const f = readForm();
+  let msg = '';
+  if ($('#fAmount').value === '') msg = '請輸入金額';
+  else if (!Number.isInteger(f.amount) || f.amount <= 0) msg = '金額要是大於 0 的整數';
+  else if (f.amount > MAX_AMOUNT) msg = '金額最多 9,999,999';
+  else if (!f.category) msg = '請選一個分類';
+  else if (!DateUtil.isValid(f.date)) msg = '請選擇日期';
+  $('#fHint').textContent = msg;
+  $('#fSave').disabled = !!msg;
+  return msg ? null : f;
+}
+
+function openSheet(rec) {
+  ui.editingId = rec ? rec.id : null;
+  $('#sheetTitle').textContent = rec ? '編輯紀錄' : '記一筆';
+  $('#fAmount').value = rec ? String(rec.amount) : '';
+  $('#fDate').value = rec ? rec.date : DateUtil.today();
+  $('#fNote').value = rec ? rec.note : '';
+  $('#fDelete').hidden = !rec;
+  setCategory(rec ? rec.category : null);
+  const sheet = sheetEl(), overlay = $('#overlay');
+  sheet.inert = false;
+  sheet.removeAttribute('inert');
+  sheet.classList.add('open');
+  overlay.hidden = false;
+  requestAnimationFrame(() => overlay.classList.add('show'));
+  document.documentElement.classList.add('lock');
+  // 在點擊事件中同步聚焦，iOS 才會叫出數字鍵盤
+  if (!rec) $('#fAmount').focus({ preventScroll: true });
+  // 讓 Android 返回鍵可以關閉面板。關閉時不呼叫 history.back()（非同步，快速重開會誤關新面板）
+  try { if (!(history.state && history.state.sheet)) history.pushState({ sheet: true }, ''); } catch (e) { /* 忽略 */ }
+}
+function closeSheet() {
+  if (!isSheetOpen()) return;
+  const sheet = sheetEl(), overlay = $('#overlay');
+  if (document.activeElement && sheet.contains(document.activeElement)) document.activeElement.blur();
+  sheet.classList.remove('open');
+  sheet.inert = true;
+  sheet.setAttribute('inert', '');
+  overlay.classList.remove('show');
+  setTimeout(() => { if (!isSheetOpen()) overlay.hidden = true; }, 280);
+  document.documentElement.classList.remove('lock');
+  ui.editingId = null;
+}
+
+function submitForm() {
+  const f = validateForm();
+  if (!f) return;
+  const editing = ui.editingId;
+  const rec = editing ? Store.update(editing, f) : Store.add(f);
+  if (!rec) { toast(Store.error()); return; }
+  closeSheet();
+  // 確保剛存的那筆在首頁看得到
+  const idx = groupByDate().findIndex(g => g.date === rec.date);
+  if (idx >= ui.groupLimit) ui.groupLimit = idx + 1;
+  renderAll();
+  celebrate(rec);
+  toast(editing ? '已更新' : '記好了');
+}
+
+function celebrate(rec) {
+  const row = document.querySelector(`.rec[data-id="${CSS.escape(rec.id)}"]`);
+  if (row) {
+    row.classList.add('landed', 'fresh');
+    setTimeout(() => row.classList.remove('fresh'), 1000);
+    if (ui.tab === 'home') {
+      const r = row.getBoundingClientRect();
+      if (r.top < 0 || r.bottom > window.innerHeight - 160) row.scrollIntoView({ block: 'center' });
+    }
+  }
+  if (rec.date === DateUtil.today()) {
+    const el = $('#sumToday');
+    el.classList.remove('bump');
+    void el.offsetWidth;
+    el.classList.add('bump');
+  }
+}
+
+async function deleteCurrent() {
+  const rec = Store.get(ui.editingId);
+  if (!rec) return;
+  const c = catOf(rec.category);
+  const ok = await dialog({
+    title: '要刪除這筆紀錄嗎？',
+    message: `${DateUtil.shortLabel(rec.date)}　${c.name}　NT$ ${fmt(rec.amount)}${rec.note ? '\n' + rec.note : ''}\n刪除後就無法復原了。`,
+    buttons: [{ label: '刪除', value: true, kind: 'danger' }, { label: '先不要', value: false }],
+  });
+  if (!ok) return;
+  if (!Store.remove(rec.id)) { toast(Store.error()); return; }
+  closeSheet();
+  renderAll();
+  toast('已刪除');
+}
+
+/* ---------- 匯出／匯入 ---------- */
+async function exportJson() {
+  if (!Store.records().length) { toast('還沒有紀錄可以匯出'); return; }
+  const now = Date.now();
+  const text = JSON.stringify(Store.exportPayload(now), null, 2);
+  const ok = await Backup.deliver(text, `xiaorizi-backup-${DateUtil.today()}.json`, 'application/json');
+  if (!ok) { toast('匯出沒有完成'); return; }
+  if (!Store.setSettings({ lastExportAt: now, reminderDismissedAt: null })) ui.reminderHidden = true;
+  renderAll();
+  toast('備份檔已匯出');
+}
+async function exportCsv() {
+  if (!Store.records().length) { toast('還沒有紀錄可以匯出'); return; }
+  const ok = await Backup.deliver(Backup.toCsv(Store.records()), `xiaorizi-${DateUtil.today()}.csv`, 'text/csv;charset=utf-8');
+  toast(ok ? 'CSV 已匯出' : '匯出沒有完成');
+}
+async function importFile(file) {
+  const fail = msg => dialog({ title: '無法匯入', message: msg + '\n目前的資料沒有任何變動。', buttons: [{ label: '知道了', value: null, kind: 'primary' }] });
+  if (file.size > 5 * 1024 * 1024) return fail('檔案太大了，看起來不是這個 App 的備份。');
+  let text;
+  try { text = await file.text(); } catch (e) { return fail('讀不到這個檔案。'); }
+  const res = Backup.parse(text);
+  if (!res.ok) return fail(res.msg);
+  if (!res.records.length) return fail('這份備份裡沒有任何紀錄。');
+
+  const current = Store.records().length;
+  const existing = new Set(Store.records().map(r => r.id));
+  const fresh = res.records.filter(r => !existing.has(r.id)).length;
+  let mode;
+  if (!current) {
+    mode = await dialog({ title: `匯入 ${res.records.length} 筆紀錄？`, buttons: [{ label: '匯入', value: 'merge', kind: 'primary' }, { label: '取消', value: null }] });
+  } else {
+    mode = await dialog({
+      title: `備份裡有 ${res.records.length} 筆紀錄`,
+      message: `合併：保留目前的 ${current} 筆，加入 ${fresh} 筆新紀錄（重複的不會再加）。\n覆蓋：刪除目前的 ${current} 筆，改用備份裡的資料。`,
+      buttons: [{ label: `合併（加入 ${fresh} 筆）`, value: 'merge', kind: 'primary' },
+                { label: '覆蓋', value: 'replace', kind: 'danger' },
+                { label: '取消', value: null }],
+    });
+    if (mode === 'replace') {
+      const sure = await dialog({ title: '確定要覆蓋嗎？', message: `目前的 ${current} 筆紀錄會被備份資料取代。`,
+        buttons: [{ label: '確定覆蓋', value: true, kind: 'danger' }, { label: '取消', value: false }] });
+      if (!sure) mode = null;
+    }
+  }
+  if (!mode) return;
+  if (mode === 'merge') {
+    const added = Store.merge(res.records);
+    if (added === null) return fail(Store.error());
+    toast(`已加入 ${added} 筆紀錄`);
+  } else {
+    if (!Store.replace(res.records)) return fail(Store.error());
+    toast(`已改用備份的 ${res.records.length} 筆紀錄`);
+  }
+  ui.groupLimit = GROUP_PAGE;
+  renderAll();
+}
+
+/* ---------- 鍵盤出現時，讓面板停在鍵盤上方 ---------- */
+function updateViewport() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+  const root = document.documentElement;
+  root.style.setProperty('--kb', kb + 'px');
+  root.style.setProperty('--vvh', Math.round(vv.height) + 'px');
+  root.classList.toggle('kb-open', kb > 80);
+}
+
+/* ---------- 跨日檢查：App 開著或從背景回來時更新「今天」 ---------- */
+function checkDayChange() {
+  const t = DateUtil.today();
+  if (t === ui.today) return;
+  const oldMonth = ui.today.slice(0, 7);
+  ui.today = t;
+  if (ui.statsMonth === oldMonth) ui.statsMonth = t.slice(0, 7);
+  renderAll();
+}
+
+/* ---------- 事件綁定 ---------- */
+function bind() {
+  document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+  $('#fab').addEventListener('click', () => openSheet(null));
+
+  $('#app').addEventListener('click', e => {
+    const rec = e.target.closest('.rec');
+    if (rec) { const r = Store.get(rec.dataset.id); if (r) openSheet(r); return; }
+    const notice = e.target.closest('[data-notice]');
+    if (notice) { Store.dismissNotice(+notice.dataset.notice); renderNotices(); return; }
+    const act = e.target.closest('[data-act]');
+    if (!act) return;
+    if (act.dataset.act === 'more') { ui.groupLimit += GROUP_PAGE; renderHome(); }
+    if (act.dataset.act === 'goBackup') setTab('settings');
+    if (act.dataset.act === 'dismissReminder') {
+      if (!Store.setSettings({ reminderDismissedAt: Date.now() })) ui.reminderHidden = true;
+      renderReminder();
+    }
+  });
+
+  // 面板
+  $('#overlay').addEventListener('click', () => closeSheet());
+  $('#sheetCancel').addEventListener('click', () => closeSheet());
+  $('#fSave').addEventListener('click', submitForm);
+  $('#fDelete').addEventListener('click', deleteCurrent);
+  $('#entryForm').addEventListener('submit', e => { e.preventDefault(); submitForm(); });
+  $('#catGrid').addEventListener('click', e => {
+    const b = e.target.closest('.cat-btn');
+    if (b) setCategory(b.dataset.cat);
+  });
+  // 點分類與儲存時不搶走金額欄的焦點，鍵盤不會忽開忽關
+  const keepFocus = e => { if (document.activeElement === $('#fAmount')) e.preventDefault(); };
+  $('#catGrid').addEventListener('mousedown', keepFocus);
+  $('#fSave').addEventListener('mousedown', keepFocus);
+  $('#fAmount').addEventListener('input', () => {
+    const el = $('#fAmount');
+    // 全形轉半形；貼上「12.5」時只取整數部分，避免變成 125
+    let v = el.value.replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+                    .split(/[.．]/)[0].replace(/\D/g, '').replace(/^0+/, '').slice(0, 7);
+    if (v !== el.value) el.value = v;
+    validateForm();
+  });
+  ['#fDate', '#fNote'].forEach(s => $(s).addEventListener('input', validateForm));
+  $('#fDate').addEventListener('change', validateForm);
+  ['#fAmount', '#fNote'].forEach(s => $(s).addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submitForm(); }
+  }));
+
+  // 對話框
+  $('#dialog').addEventListener('click', e => { if (e.target.id === 'dialog') closeDialog(null); });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (dlgResolve) closeDialog(null);
+    else if (isSheetOpen()) closeSheet();
+  });
+  window.addEventListener('popstate', () => {
+    if (dlgResolve) closeDialog(null);
+    if (isSheetOpen()) closeSheet();
+  });
+
+  // 統計：按鈕與左右滑動切換月份
+  $('#mPrev').addEventListener('click', () => shiftMonth(-1));
+  $('#mNext').addEventListener('click', () => shiftMonth(1));
+  let sx = 0, sy = 0;
+  const statsCard = $('#statsCard');
+  statsCard.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  statsCard.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 60 && Math.abs(dy) < 50) shiftMonth(dx < 0 ? 1 : -1);
+  }, { passive: true });
+
+  // 備份
+  $('#btnExportJson').addEventListener('click', exportJson);
+  $('#btnExportCsv').addEventListener('click', exportCsv);
+  $('#btnImport').addEventListener('click', () => { const fi = $('#fileInput'); fi.value = ''; fi.click(); });
+  $('#fileInput').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) importFile(f); });
+
+  // 視窗、跨日、其他分頁同步
+  if (window.visualViewport) {
+    visualViewport.addEventListener('resize', updateViewport);
+    visualViewport.addEventListener('scroll', updateViewport);
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDayChange(); });
+  setInterval(checkDayChange, 30000);
+  window.addEventListener('storage', e => {
+    if (e.key === STORAGE_KEY) { Store.load(); renderAll(); }
+  });
+}
+
+function registerSW() {
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    navigator.serviceWorker.register('./sw.js').catch(() => { /* 沒有 sw.js 時照常運作 */ });
+  }
+}
+
+function init() {
+  if (history.state && history.state.sheet) history.replaceState(null, '');
+  Store.load();
+  buildCatGrid();
+  bind();
+  updateViewport();
+  setTab('home');
+  renderAll();
+  registerSW();
+}
+
+try {
+  init();
+} catch (e) {
+  console.error(e);
+  document.getElementById('app').hidden = true;
+  document.getElementById('fab').hidden = true;
+  document.querySelector('.tabbar').hidden = true;
+  document.getElementById('fatal').hidden = false;
+}
+</script>
+</body>
+</html>
